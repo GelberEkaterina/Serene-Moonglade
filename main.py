@@ -6,6 +6,8 @@ from math import sqrt
 if __name__ == '__main__':
     pygame.init()
     i = 0
+    pygame.mixer.music.load(f"{os.getcwd()}\\Music\\fading_hope.ogg")
+    pygame.mixer.music.play(-1)
     clock = pygame.time.Clock()
     size = width, height = 1200, 800
     # Я писала следующую часть кода до изучения спрайтов
@@ -24,16 +26,17 @@ if __name__ == '__main__':
                 sys.exit()
         keys = pygame.key.get_pressed()
         mouse = pygame.mouse.get_pos()
+        speed = 0.75
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             if keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_DOWN] or keys[pygame.K_s]:
-                speed = sqrt(2) / 2
+                speed *= sqrt(2) / 2
             else:
-                speed = 1
+                speed *= 1
         elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             if keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_DOWN] or keys[pygame.K_s]:
-                speed = sqrt(2) / 2
+                speed *= sqrt(2) / 2
             else:
-                speed = 1
+                speed *= 1
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             direction = 0
             x = x - speed
