@@ -3,6 +3,23 @@ import sys
 import pygame
 from math import sqrt
 
+
+def start_screen():
+    global i
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        elif event.type == pygame.mouse
+    display.blit(pygame.transform.scale(menu_bg[i // 15], (1200, 800)), (0, 0))
+    display.blit(pygame.transform.scale(story_btn[0], (400, 200)), (150, 300))
+    i += 1
+    if i == 120:
+        i = 0
+    pygame.display.flip()
+    clock.tick(60)
+
+
 if __name__ == '__main__':
     pygame.init()
     i = 0
@@ -21,20 +38,10 @@ if __name__ == '__main__':
     direction = 3
     screen = pygame.display.set_mode(size)
     game = True
-    gamemode = 1
+    gamemode = -1
     while game:
         if gamemode == -1:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-            display.blit(pygame.transform.scale(menu_bg[i // 30], (1200, 800)), (0, 0))
-            display.blit(pygame.transform.scale(story_btn[0], (400, 200)), (150, 300))
-            i += 1
-            if i == 240:
-                i = 0
-            pygame.display.flip()
-            clock.tick(60)
+            start_screen()
         if gamemode == 1:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
