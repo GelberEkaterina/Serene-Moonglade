@@ -29,12 +29,14 @@ def start_screen():
     pygame.display.flip()
     clock.tick(240)
 
+all_sprites = pygame.sprite.Group()
+music_on = pygame.mixer.music
 
 if __name__ == '__main__':
     pygame.init()
     i = 0
-    pygame.mixer.music.load(f"{os.getcwd()}\\Music\\fading_hope.ogg")
-    pygame.mixer.music.play(-1)
+    music_on.load(f"{os.getcwd()}\\Music\\fading_hope.ogg")
+    music_on.play(-1)
     clock = pygame.time.Clock()
     size = width, height = 1200, 800
     # Я писала следующую часть кода до изучения спрайтов
@@ -51,8 +53,8 @@ if __name__ == '__main__':
 
     while start:
         start_screen()
-    pygame.mixer.music.load(f"{os.getcwd()}\\Music\\ambivalence.ogg")
-    pygame.mixer.music.play(-1)
+    music_on.load(f"{os.getcwd()}\\Music\\ambivalence.ogg")
+    music_on.play(-1)
     game = True
     while game:
         for event in pygame.event.get():
