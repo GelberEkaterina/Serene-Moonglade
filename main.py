@@ -48,8 +48,11 @@ class AnimatedChar(pygame.sprite.Sprite):
                 self.frames.append(sheet.subsurface(pygame.Rect(
                     frame_location, self.rect.size)))
 
-    def update(self, x_m, y_m):
-        self.cur_frame = (self.cur_frame + 1) % 4 + direction * 4
+    def update(self, x_m, y_m, an=0):
+        if an == 0:
+            self.cur_frame = (self.cur_frame + 1) % 4 + direction * 4
+        elif an == 1:
+            self.cur_frame = direction * 4
         self.image = pygame.transform.scale(self.frames[self.cur_frame], self.size)
         self.rect = self.rect.move(x_m, y_m)
 
@@ -99,12 +102,10 @@ if __name__ == '__main__':
     clock = pygame.time.Clock()
     size = width, height = 1200, 800
     display = pygame.display.set_mode([width, height])
-    sprite = pygame.sprite.Sprite()
-    mc = [pygame.image.load(f"{os.getcwd()}\\Sprites\\MC\\{j}{i}.png") for j in ['l', 'r', 'u', 'd'] for i in range(4)]
     story_btn = [pygame.image.load(f"{os.getcwd()}\\Images\\Menu\\story_btn{i}.png") for i in range(3)]
     x, y = 0, 0
     speed = 1
-    direction = 3
+    direction = 0
     screen = pygame.display.set_mode(size)
     start = True
 
@@ -120,35 +121,38 @@ if __name__ == '__main__':
                 sys.exit()
         keys = pygame.key.get_pressed()
         mouse = pygame.mouse.get_pos()
-        speed = 0.75
+        speed = 1
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             if keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_DOWN] or keys[pygame.K_s]:
                 speed *= sqrt(2) / 2
-            else:
-                speed *= 1
         elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             if keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_DOWN] or keys[pygame.K_s]:
                 speed *= sqrt(2) / 2
-            else:
-                speed *= 1
+        x, y = 0, 0
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             direction = 3
-            x = x - speed
+            x = -speed
         if keys[pygame.K_UP] or keys[pygame.K_w]:
             direction = 2
-            y = y - speed
+            y = -speed
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
             direction = 0
-            y = y + speed
+            y = speed
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             direction = 1
-            x = x + speed
-        if not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT] or keys[pygame.K_UP] or keys[pygame.K_DOWN]):
+            x = speed
+        if not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT] or keys[pygame.K_UP] or keys[pygame.K_DOWN]) or (
+                keys[pygame.K_w] or keys[pygame.K_a] or keys[pygame.K_s] or keys[pygame.K_d]):
+            char.update(0, 0, 1)
+            i = 0
+        else:
+            if i % 15 == 0:
+                char.update(x, y)
+            else:
+                char.update(x, y, 2)
+        if i == 30:
             i = 0
         display.fill([125, 0, 255])
-        if i == 15:
-            char.update(x, y)
-            i = 0
         char.draw(screen)
         i += 1
         pygame.display.flip()
