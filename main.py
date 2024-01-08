@@ -104,7 +104,6 @@ if __name__ == '__main__':
     display = pygame.display.set_mode([width, height])
     story_btn = [pygame.image.load(f"{os.getcwd()}\\Images\\Menu\\story_btn{i}.png") for i in range(3)]
     x, y = 0, 0
-    speed = 1
     direction = 0
     screen = pygame.display.set_mode(size)
     start = True
