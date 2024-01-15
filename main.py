@@ -54,7 +54,8 @@ class AnimatedChar(pygame.sprite.Sprite):
         elif an == 1:
             self.cur_frame = direction * 4
         self.image = pygame.transform.scale(self.frames[self.cur_frame], self.size)
-        self.rect = self.rect.move(x_m, y_m)
+        self.rect.x = x_m
+        self.rect.y = y_m
 
 
 speed = 0
@@ -62,9 +63,9 @@ direction = 0
 menu = pygame.sprite.Group()
 char = pygame.sprite.Group()
 music_on = pygame.mixer.music
-menu_background = AnimatedMenu(pygame.image.load(f"{os.getcwd()}\\Images\\Menu Background.png"), 4, 2, 0, 0, 1200,
+menu_background = AnimatedMenu(pygame.image.load(f"{os.getcwd()}\\Sprites\\Menu Background.png"), 4, 2, 0, 0, 1200,
                                800)
-mc = AnimatedChar(pygame.image.load(f"{os.getcwd()}\\Images\\MC.png"), 4, 4, 0, 0, 128, 128)
+mc = AnimatedChar(pygame.image.load(f"{os.getcwd()}\\Sprites\\MC.png"), 4, 4, 0, 0, 128, 128)
 
 
 def start_screen():
@@ -80,6 +81,11 @@ def start_screen():
         display.blit(pygame.transform.scale(story_btn[1], (400, 200)), (150, 300))
     else:
         display.blit(pygame.transform.scale(story_btn[0], (400, 200)), (150, 300))
+    if 650 < pygame.mouse.get_pos()[0] < 1050 and 300 < pygame.mouse.get_pos()[1] < 500:
+        display.blit(pygame.transform.scale(free_mode_btn[1], (400, 200)), (650, 300))
+    else:
+        display.blit(pygame.transform.scale(free_mode_btn[0], (400, 200)), (650, 300))
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -98,11 +104,12 @@ if __name__ == '__main__':
     pygame.init()
     i = 0
     music_on.load(f"{os.getcwd()}\\Music\\fading_hope.ogg")
-    music_on.play(-1)
+    # MUS!!! music_on.play(-1)
     clock = pygame.time.Clock()
     size = width, height = 1200, 800
     display = pygame.display.set_mode([width, height])
-    story_btn = [pygame.image.load(f"{os.getcwd()}\\Images\\Menu\\story_btn{i}.png") for i in range(3)]
+    story_btn = [pygame.image.load(f"{os.getcwd()}\\Sprites\\Buttons\\story_btn{i}.png") for i in range(2)]
+    free_mode_btn = [pygame.image.load(f"{os.getcwd()}\\Sprites\\Buttons\\free_mode_btn{i}.png") for i in range(2)]
     x, y = 0, 0
     direction = 0
     screen = pygame.display.set_mode(size)
@@ -111,7 +118,7 @@ if __name__ == '__main__':
     while start:
         start_screen()
     music_on.load(f"{os.getcwd()}\\Music\\ambivalence.ogg")
-    music_on.play(-1)
+    # MUS!!! music_on.play(-1)
     game = True
     while game:
         for event in pygame.event.get():
@@ -127,22 +134,21 @@ if __name__ == '__main__':
         elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             if keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_DOWN] or keys[pygame.K_s]:
                 speed *= sqrt(2) / 2
-        x, y = 0, 0
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             direction = 3
-            x = -speed
+            x -= speed
         if keys[pygame.K_UP] or keys[pygame.K_w]:
             direction = 2
-            y = -speed
+            y -= speed
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
             direction = 0
-            y = speed
+            y += speed
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             direction = 1
-            x = speed
+            x += speed
         if not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT] or keys[pygame.K_UP] or keys[pygame.K_DOWN]) or (
                 keys[pygame.K_w] or keys[pygame.K_a] or keys[pygame.K_s] or keys[pygame.K_d]):
-            char.update(0, 0, 1)
+            char.update(x, y, 1)
             i = 0
         else:
             if i % 15 == 0:
