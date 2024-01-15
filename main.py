@@ -65,7 +65,12 @@ char = pygame.sprite.Group()
 music_on = pygame.mixer.music
 menu_background = AnimatedMenu(pygame.image.load(f"{os.getcwd()}\\Sprites\\Menu Background.png"), 4, 2, 0, 0, 1200,
                                800)
-mc = AnimatedChar(pygame.image.load(f"{os.getcwd()}\\Sprites\\MC.png"), 4, 4, 0, 0, 128, 128)
+mc = AnimatedChar(pygame.image.load(f"{os.getcwd()}\\Sprites\\MC.png"), 4, 4, 0, 0, 256, 256)
+story_btn = [pygame.image.load(f"{os.getcwd()}\\Sprites\\Buttons\\story_btn{i}.png") for i in range(2)]
+free_mode_btn = [pygame.image.load(f"{os.getcwd()}\\Sprites\\Buttons\\free_mode_btn{i}.png") for i in range(2)]
+sky = pygame.image.load(f"{os.getcwd()}\\Sprites\\Game BG Sky.png")
+forest = pygame.image.load(f"{os.getcwd()}\\Sprites\\Game BG Forest.png")
+glitch = pygame.image.load(f"{os.getcwd()}\\Sprites\\Game BG SkyGlitch.png")
 
 
 def start_screen():
@@ -108,10 +113,9 @@ if __name__ == '__main__':
     clock = pygame.time.Clock()
     size = width, height = 1200, 800
     display = pygame.display.set_mode([width, height])
-    story_btn = [pygame.image.load(f"{os.getcwd()}\\Sprites\\Buttons\\story_btn{i}.png") for i in range(2)]
-    free_mode_btn = [pygame.image.load(f"{os.getcwd()}\\Sprites\\Buttons\\free_mode_btn{i}.png") for i in range(2)]
     x, y = 0, 0
     direction = 0
+    room_id = 0
     screen = pygame.display.set_mode(size)
     start = True
 
@@ -127,7 +131,7 @@ if __name__ == '__main__':
                 sys.exit()
         keys = pygame.key.get_pressed()
         mouse = pygame.mouse.get_pos()
-        speed = 1
+        speed = 2
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             if keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_DOWN] or keys[pygame.K_s]:
                 speed *= sqrt(2) / 2
@@ -155,9 +159,14 @@ if __name__ == '__main__':
                 char.update(x, y)
             else:
                 char.update(x, y, 2)
-        if i == 30:
+        if i == 15:
             i = 0
-        display.fill([125, 0, 255])
+        if room_id == 0:
+            display.blit(pygame.transform.scale(sky, (1200, 800)), (0, 0))
+        elif room_id == 2:
+            display.blit(pygame.transform.scale(forest, (1200, 800)), (0, 0))
+        elif room_id == 1:
+            display.blit(pygame.transform.scale(glitch, (1200, 800)), (0, 0))
         char.draw(screen)
         i += 1
         pygame.display.flip()
