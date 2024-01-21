@@ -2,6 +2,7 @@ import os
 import sys
 import pygame
 from math import sqrt
+import pygame.mixer
 
 
 class Camera:
@@ -51,9 +52,10 @@ class AnimatedChar(pygame.sprite.Sprite):
         self.cut_sheet(sheet, columns, rows)
         self.cur_frame = 0
         self.image = self.frames[self.cur_frame]
-        self.rect = self.rect.move(x, y)
+        self.rect.x, self.rect.y = 600 - a // 2, 400 - b // 2
         self.size = (a, b)
         self.direction = direction
+        self.mask = pygame.mask.from_surface(self.image)
 
     def cut_sheet(self, sheet, columns, rows):
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
@@ -70,66 +72,33 @@ class AnimatedChar(pygame.sprite.Sprite):
         elif an == 1:
             self.cur_frame = direction * 4
         self.image = pygame.transform.scale(self.frames[self.cur_frame], self.size)
-        self.rect.x = x_m
-        self.rect.y = y_m
         self.collide_walls()
 
     def collide_walls(self):
         global x_m, y_m
-        hits = pygame.sprite.spritecollide(self, obstacle_sprites, False)
-        if hits:
-            if x_m - self.rect.x > 0:
-                self.rect.x = hits[0].rect.left - self.rect.width
-                x_m = self.rect.x
-                print("left")
-            elif x_m - self.rect.x < 0:
-                self.rect.x = hits[0].rect.right
-                x_m = self.rect.x
-            if y_m - self.rect.y < 0:
-                self.rect.y = hits[0].rect.top
-                y_m = self.rect.y
-            elif y_m - self.rect.y > 0:
-                self.rect.y = hits[0].rect.bottom
-                y_m = self.rect.y
-
-
-def load_level(filename):
-    with open(filename, 'r') as mapFile:
-        level_map = [line.strip() for line in mapFile]
-    max_width = max(map(len, level_map))
-    return list(map(lambda x: x.ljust(max_width, '.'), level_map))
-
-
-x, y = 0, 0
-x_m, y_m = 735, 475
-speed = 0
-direction = 0
-all_sprites = pygame.sprite.Group()
-menu = pygame.sprite.Group()
-char = pygame.sprite.Group()
-tiles_group = pygame.sprite.Group()
-obstacle_sprites = pygame.sprite.Group()
-free = [1, 1, 1, 1]
-music_on = pygame.mixer.music
-menu_background = AnimatedMenu(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Menu Background.png"), 4, 2, 1200, 800)
-mc = AnimatedChar(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\MC.png"), 4, 4, 128, 128)
-story_btn = [pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Buttons\\story_btn{i}.png") for i in range(2)]
-free_mode_btn = [pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Buttons\\free_mode_btn{i}.png") for i in range(2)]
-sky = pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Game BG Sky.png")
-forest = pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Game BG Forest.png")
-glitch = pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Game BG SkyGlitch.png")
-camera = Camera()
-
-tile_images = {
-    'null': pygame.transform.scale(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Tiles\\null.png"), (64, 64)),
-    'grass': pygame.transform.scale(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Tiles\\grass.png"), (64, 64)),
-    'stone': pygame.transform.scale(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Tiles\\stone.png"), (64, 64)),
-    'wall': pygame.transform.scale(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Tiles\\glitch_wall.png"),
-                                   (64, 64)),
-    'floor': pygame.transform.scale(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Tiles\\glitch_floor.png"),
-                                    (64, 64)),
-}
-tile_width = tile_height = 64
+        global move, speed, room_id, music_on
+        for spr in obstacle_sprites:
+            hits = pygame.sprite.collide_mask(self, spr)
+            if hits:
+                if move[0] == 1:
+                    self.rect.x += speed
+                if move[3] == 1:
+                    self.rect.x -= speed
+                if move[1] == 1:
+                    self.rect.y += speed
+                if move[2] == 1:
+                    self.rect.y -= speed
+        for spr in event_sprites:
+            ev = pygame.sprite.collide_mask(self, spr)
+            if ev:
+                if spr.event == 'room_1':
+                    timestamp = music_on.get_pos() / 1000
+                    print(timestamp)
+                    music_on.load(f"{os.getcwd()}\\Data\\Music\\ambivalence_glitch.ogg")
+                    music_on.play(-1)
+                    music_on.set_pos(timestamp)
+                    room_id = 1
+                    self.rect.x, self.rect.y = 600 - self.rect.width // 2, 400 - self.rect.height // 2
 
 
 class Tile(pygame.sprite.Sprite):
@@ -137,7 +106,7 @@ class Tile(pygame.sprite.Sprite):
         super().__init__(tiles_group, all_sprites)
         self.image = tile_images[tile_type]
         self.rect = self.image.get_rect().move(
-            tile_width * pos_x, tile_height * pos_y)
+            tile_width * pos_x - x_m, tile_height * pos_y - y_m)
 
 
 class TileObstacle(pygame.sprite.Sprite):
@@ -145,7 +114,18 @@ class TileObstacle(pygame.sprite.Sprite):
         super().__init__(obstacle_sprites, all_sprites)
         self.image = tile_images[tile_type]
         self.rect = self.image.get_rect().move(
-            tile_width * pos_x, tile_height * pos_y)
+            tile_width * pos_x - x_m, tile_height * pos_y - y_m)
+        self.mask = pygame.mask.from_surface(self.image)
+
+
+class TileEvent(pygame.sprite.Sprite):
+    def __init__(self, tile_type, pos_x, pos_y, event_type):
+        super().__init__(event_sprites, all_sprites)
+        self.image = tile_images[tile_type]
+        self.rect = self.image.get_rect().move(
+            tile_width * pos_x - x_m, tile_height * pos_y - y_m)
+        self.mask = pygame.mask.from_surface(self.image)
+        self.event = event_type
 
 
 def generate_level(level):
@@ -154,21 +134,27 @@ def generate_level(level):
         for x in range(len(level[y])):
             if level[y][x] == '.':
                 Tile('grass', x, y)
-            elif level[y][x] == '#':
-                TileObstacle('stone', x, y)
+            elif level[y][x] == '|':
+                TileObstacle('stone_right', x, y)
+            elif level[y][x] == '_':
+                TileObstacle('stone_down', x, y)
+            elif level[y][x] == '+':
+                TileObstacle('big_corner', x, y)
+            elif level[y][x] == '-':
+                TileObstacle('small_corner', x, y)
             elif level[y][x] == '@':
                 Tile('grass', x, y)
                 new_player = mc
             elif level[y][x] == '!':
-                Tile('grass', x, y)
+                TileEvent('grass', x, y, 'room_1')
             elif level[y][x] == '?':
                 TileObstacle('wall', x, y)
             elif level[y][x] == '%':
                 Tile('floor', x, y)
-            elif level[y][x] == '-':
+            elif level[y][x] == '=':
                 Tile('null', x, y)
             elif level[y][x] == ',':
-                Tile('null', x, y)
+                TileEvent('null', x, y, 'battle')
     return new_player, x, y
 
 
@@ -204,25 +190,67 @@ def start_screen():
     clock.tick(120)
 
 
-if __name__ == '__main__':
-    pygame.init()
-    i = 0
-    music_on.load(f"{os.getcwd()}\\Data\\Music\\fading_hope.ogg")
-    # MUS!!! music_on.play(-1)
-    clock = pygame.time.Clock()
-    size = width, height = 1200, 800
-    display = pygame.display.set_mode([width, height])
-    direction = 0
-    room_id = 0
-    screen = pygame.display.set_mode(size)
-    start_lvl = load_level(f"{os.getcwd()}\\Data\\Maps\\0.txt")
-    second_lvl = load_level(f"{os.getcwd()}\\Data\\Maps\\1.txt")
-    start = True
+def load_level(filename):
+    with open(filename, 'r') as mapFile:
+        level_map = [line.strip() for line in mapFile]
+    max_width = max(map(len, level_map))
+    return list(map(lambda x: x.ljust(max_width, '.'), level_map))
 
-    while start:
-        start_screen()
+
+n = 64
+x, y = 0, 0
+x_m, y_m = n * 3.875, n * 3
+gamemode = 0
+speed = 0
+direction = 0
+pygame.mixer.init()
+all_sprites = pygame.sprite.Group()
+menu = pygame.sprite.Group()
+char = pygame.sprite.Group()
+tiles_group = pygame.sprite.Group()
+obstacle_sprites = pygame.sprite.Group()
+event_sprites = pygame.sprite.Group()
+music_on = pygame.mixer.music
+menu_background = AnimatedMenu(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Menu Background.png"), 4, 2, 1200, 800)
+mc = AnimatedChar(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\MC.png"), 4, 4, 36, 84)
+story_btn = [pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Buttons\\story_btn{i}.png") for i in range(2)]
+free_mode_btn = [pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Buttons\\free_mode_btn{i}.png") for i in range(2)]
+sky = pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Game BG Sky.png")
+forest = pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Game BG Forest.png")
+glitch = pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Game BG SkyGlitch.png")
+camera = Camera()
+tile_images = {
+    'null': pygame.transform.scale(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Tiles\\null.png"), (n, n)),
+    'grass': pygame.transform.scale(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Tiles\\grass.png"), (n, n)),
+    'stone_right': pygame.transform.scale(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Tiles\\stone_right.png"),
+                                          (n, n)),
+    'stone_down': pygame.transform.scale(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Tiles\\stone_down.png"),
+                                         (n, n)),
+    'big_corner': pygame.transform.scale(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Tiles\\corner_big.png"),
+                                         (n, n)),
+    'small_corner': pygame.transform.scale(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Tiles\\corner_small.png"),
+                                           (n, n)),
+    'wall': pygame.transform.scale(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Tiles\\glitch_wall.png"),
+                                   (n, n)),
+    'floor': pygame.transform.scale(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Tiles\\glitch_floor.png"),
+                                    (n, n)),
+}
+tile_width = tile_height = n
+move = [0, 0, 0, 0]
+i = 0
+clock = pygame.time.Clock()
+size = width, height = 1200, 800
+display = pygame.display.set_mode([width, height])
+room_id = 0
+screen = pygame.display.set_mode(size)
+start_lvl = load_level(f"{os.getcwd()}\\Data\\Maps\\0.txt")
+second_lvl = load_level(f"{os.getcwd()}\\Data\\Maps\\1.txt")
+
+
+def story_mode():
+    global direction, i, speed, move, mc
     music_on.load(f"{os.getcwd()}\\Data\\Music\\ambivalence.ogg")
-    # MUS!!! music_on.play(-1)
+    music_on.play(-1, 0)
     game = True
     char.update(1)
     while game:
@@ -231,27 +259,31 @@ if __name__ == '__main__':
                 pygame.quit()
                 sys.exit()
         keys = pygame.key.get_pressed()
-        speed = 5
-        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            if keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_DOWN] or keys[pygame.K_s]:
+        speed = 2.5
+        if keys[pygame.K_LEFT]:
+            if keys[pygame.K_UP] or keys[pygame.K_DOWN]:
                 speed *= sqrt(2) / 2
-        elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            if keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_DOWN] or keys[pygame.K_s]:
+        elif keys[pygame.K_RIGHT]:
+            if keys[pygame.K_UP] or keys[pygame.K_DOWN]:
                 speed *= sqrt(2) / 2
-        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+        move = [0, 0, 0, 0]
+        if keys[pygame.K_LEFT]:
             direction = 3
-            x_m -= speed
-        if keys[pygame.K_UP] or keys[pygame.K_w]:
+            mc.rect.x -= speed
+            move[0] = 1
+        if keys[pygame.K_UP]:
             direction = 2
-            y_m -= speed
-        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+            mc.rect.y -= speed
+            move[1] = 1
+        if keys[pygame.K_DOWN]:
             direction = 0
-            y_m += speed
-        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+            mc.rect.y += speed
+            move[2] = 1
+        if keys[pygame.K_RIGHT]:
             direction = 1
-            x_m += speed
-        if not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT] or keys[pygame.K_UP] or keys[pygame.K_DOWN]) or (
-                keys[pygame.K_w] or keys[pygame.K_a] or keys[pygame.K_s] or keys[pygame.K_d]):
+            mc.rect.x += speed
+            move[3] = 1
+        if not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT] or keys[pygame.K_UP] or keys[pygame.K_DOWN]):
             char.update(1)
             i = 0
         else:
@@ -264,6 +296,8 @@ if __name__ == '__main__':
         for sprite in tiles_group:
             sprite.kill()
         for sprite in obstacle_sprites:
+            sprite.kill()
+        for sprite in event_sprites:
             sprite.kill()
         if room_id == 0:
             display.blit(pygame.transform.scale(sky, (1200, 800)), (0, 0))
@@ -278,12 +312,25 @@ if __name__ == '__main__':
             camera.apply(sprite)
         for sprite in obstacle_sprites:
             camera.apply(sprite)
-        for sprite in char:
+        for sprite in event_sprites:
             camera.apply(sprite)
         i += 1
         tiles_group.draw(screen)
         obstacle_sprites.draw(screen)
+        event_sprites.draw(screen)
         char.draw(screen)
         pygame.display.flip()
         clock.tick(30)
+
+
+if __name__ == '__main__':
+    pygame.init()
+    music_on.load(f"{os.getcwd()}\\Data\\Music\\fading_hope.ogg")
+    music_on.play(-1)
+    start = True
+    while start:
+        start_screen()
+    if gamemode == 0:
+        story_mode()
+
 pygame.quit()
