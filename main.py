@@ -11,12 +11,11 @@ questions = [
     ['4 планета от Солнца', 'Марс', 'Земля', 'Меркурий', 'Юпитер', 1],
     ['Сколько клеток на шахматной доске?', '1', '0', '64', '128', 3],
     ['Что быстрее: свет или звук?', 'Звук', 'Свет', 'Одинаково', 'Усэйн Болт', 2],
-    ['Самая высокая точка в мире', 'Биг-Бен', 'Эверест', 'Марианская\nвпадина', 'Эльбрус', 2],
+    ['Самая высокая точка в мире', 'Биг-Бен', 'Эверест', 'Новосибирск', 'Эльбрус', 2],
     ['Чего боятся люди с фобофобией?', 'Темноты', 'Длинных слов', 'Высоты', 'Фобий', 4],
-    ['С точки зрения количества конечностей,\nкем являются кентавры?', 'Насекомыми', 'Паукообразными', 'Млекопитающими',
-     'Рыбами', 1],
+    ['Самое глубокое озеро', 'Байкал', 'Чаны', 'Онтарио', 'Танганьика', 1],
     ['Какой океан самый глубокий?', 'Тихий', 'Атлантический', 'Индийский', 'Одинаковые', 1],
-    ['С какой страной Франция имеет самую длинную сухопутную границу?', 'Германия', 'Испания', 'Бразилия', 'Австралия',
+    ['У Франции cамая длинная граница с ...', 'Германией', 'Испанией', 'Бразилией', 'Австралией',
      3],
     ['Какой из городов расположен севернее?', 'Нью-Йорк', 'Пекин', 'Бразилиа', 'Рим', 4]
 ]
@@ -408,7 +407,7 @@ def battle_mode(quiz_type):
     music_on.load(f"{os.getcwd()}\\Data\\Music\\test_of_wits.ogg")
     music_on.play(-1)
     global current_lifes, mouse, counter_q, questions
-    font = pygame.font.Font(None, 30)
+    font = pygame.font.Font(None, 64)
     current_lifes = 3
     answer = -1
     score = 0
@@ -422,9 +421,8 @@ def battle_mode(quiz_type):
                     pygame.quit()
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    answer = layout.cur_frame - 1
+                    answer = layout.cur_frame
                     if answer >= 0:
-                        i = 0
                         if answer == questions[counter_q][5]:
                             score += 1
                         else:
@@ -434,12 +432,30 @@ def battle_mode(quiz_type):
                         counter_q += 1
                         if counter_q == 10:
                             victory(score)
+            question, ans_1, ans_2, ans_3, ans_4, null = questions[counter_q]
+            q = font.render(question, 1, pygame.Color('white'))
+            a_1, a_2, a_3, a_4 = font.render(ans_1, 1, pygame.Color('white')), \
+                                 font.render(ans_2, 1, pygame.Color('white')), \
+                                 font.render(ans_3, 1, pygame.Color('white')), \
+                                 font.render(ans_4, 1, pygame.Color('white'))
+            q_rect, a_1_rect, a_2_rect, a_3_rect, a_4_rect = q.get_rect(), a_1.get_rect(), a_2.get_rect(), \
+                                                             a_3.get_rect(), a_4.get_rect()
+            q_rect.midtop = 600, 80
+            a_1_rect.center = 296, 520
+            a_2_rect.center = 904, 520
+            a_3_rect.center = 296, 696
+            a_4_rect.center = 904, 696
             mouse = pygame.mouse.get_pos()
             layout.update()
             life.update()
             counter.update()
             display.blit(pygame.transform.scale(sky, (1200, 800)), (0, 0))
             battle_UI.draw(screen)
+            screen.blit(q, q_rect)
+            screen.blit(a_1, a_1_rect)
+            screen.blit(a_2, a_2_rect)
+            screen.blit(a_3, a_3_rect)
+            screen.blit(a_4, a_4_rect)
             pygame.display.flip()
             clock.tick(30)
 
@@ -452,6 +468,31 @@ def battle_mode(quiz_type):
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    answer = layout.cur_frame
+                    if answer >= 0:
+                        if answer == questions[counter_q][5]:
+                            score += 1
+                        else:
+                            current_lifes -= 1
+                            if current_lifes == 0:
+                                game_over()
+                        counter_q += 1
+                        if counter_q == 10:
+                            victory(score)
+            question, ans_1, ans_2, ans_3, ans_4, null = questions[counter_q]
+            q = font.render(question, 1, pygame.Color('white'))
+            a_1, a_2, a_3, a_4 = font.render(ans_1, 1, pygame.Color('white')), \
+                                 font.render(ans_2, 1, pygame.Color('white')), \
+                                 font.render(ans_3, 1, pygame.Color('white')), \
+                                 font.render(ans_4, 1, pygame.Color('white'))
+            q_rect, a_1_rect, a_2_rect, a_3_rect, a_4_rect = q.get_rect(), a_1.get_rect(), a_2.get_rect(), \
+                                                             a_3.get_rect(), a_4.get_rect()
+            q_rect.midtop = 600, 80
+            a_1_rect.center = 296, 520
+            a_2_rect.center = 904, 520
+            a_3_rect.center = 296, 696
+            a_4_rect.center = 904, 696
             mouse = pygame.mouse.get_pos()
             layout.update()
             life.update()
@@ -460,6 +501,11 @@ def battle_mode(quiz_type):
             display.blit(pygame.transform.scale(glitch, (1200, 800)), (0, 0))
             battle_UI.draw(screen)
             battle.draw(screen)
+            screen.blit(q, q_rect)
+            screen.blit(a_1, a_1_rect)
+            screen.blit(a_2, a_2_rect)
+            screen.blit(a_3, a_3_rect)
+            screen.blit(a_4, a_4_rect)
             pygame.display.flip()
             clock.tick(30)
 
