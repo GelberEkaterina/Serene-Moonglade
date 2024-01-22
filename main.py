@@ -3,6 +3,8 @@ import sys
 import pygame
 from math import sqrt
 import pygame.mixer
+import pygame.freetype
+import random
 
 
 class Camera:
@@ -76,7 +78,7 @@ class AnimatedChar(pygame.sprite.Sprite):
 
     def collide_walls(self):
         global x_m, y_m
-        global move, speed, room_id, music_on
+        global move, speed, room_id, music_on, game
         for spr in obstacle_sprites:
             hits = pygame.sprite.collide_mask(self, spr)
             if hits:
@@ -93,12 +95,42 @@ class AnimatedChar(pygame.sprite.Sprite):
             if ev:
                 if spr.event == 'room_1':
                     timestamp = music_on.get_pos() / 1000
-                    print(timestamp)
                     music_on.load(f"{os.getcwd()}\\Data\\Music\\ambivalence_glitch.ogg")
                     music_on.play(-1)
                     music_on.set_pos(timestamp)
                     room_id = 1
                     self.rect.x, self.rect.y = 600 - self.rect.width // 2, 400 - self.rect.height // 2
+                if spr.event == 'battle':
+                    game = False
+                    battle_mode('battle')
+
+
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, sheet, columns, rows, a, b):
+        super().__init__(all_sprites, battle)
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.rect.move(450, 32)
+        self.size = (a, b)
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def update(self):
+        i = random.randint(1, 30)
+        if i % 10 == 0:
+            self.cur_frame = i // 10
+        else:
+            self.cur_frame = 0
+        self.image = pygame.transform.scale(self.frames[self.cur_frame], self.size)
 
 
 class Tile(pygame.sprite.Sprite):
@@ -126,6 +158,46 @@ class TileEvent(pygame.sprite.Sprite):
             tile_width * pos_x - x_m, tile_height * pos_y - y_m)
         self.mask = pygame.mask.from_surface(self.image)
         self.event = event_type
+
+
+class Battle_UI(pygame.sprite.Sprite):
+    def __init__(self, sheet, columns, rows, thing):
+        super().__init__(battle_UI, all_sprites)
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.rect.move(0, 0)
+        self.size = (1200, 800)
+        self.thing = thing
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def update(self):
+        if self.thing == 'layout':
+            if 16 < pygame.mouse.get_pos()[0] < 576 and 448 < pygame.mouse.get_pos()[1] < 592:
+                self.cur_frame = 1
+            elif 608 < pygame.mouse.get_pos()[0] < 1168 and 448 < pygame.mouse.get_pos()[1] < 592:
+                self.cur_frame = 2
+            elif 16 < pygame.mouse.get_pos()[0] < 576 and 624 < pygame.mouse.get_pos()[1] < 768:
+                self.cur_frame = 3
+            elif 608 < pygame.mouse.get_pos()[0] < 1168 and 624 < pygame.mouse.get_pos()[1] < 768:
+                self.cur_frame = 4
+            else:
+                self.cur_frame = 0
+        if self.thing == 'live':
+            self.cur_frame = 3 - current_lifes
+        self.image = pygame.transform.scale(self.frames[self.cur_frame], (1200, 800))
+        if self.thing == 'counter':
+            self.cur_frame = counter_q
+        self.image = pygame.transform.scale(self.frames[self.cur_frame], (1200, 800))
 
 
 def generate_level(level):
@@ -186,6 +258,11 @@ def start_screen():
                     start = False
                     gamemode = 0
                     return
+            elif 650 < pygame.mouse.get_pos()[0] < 1050 and 300 < pygame.mouse.get_pos()[1] < 500:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    start = False
+                    gamemode = 1
+                    return
     pygame.display.flip()
     clock.tick(120)
 
@@ -210,9 +287,12 @@ char = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
 obstacle_sprites = pygame.sprite.Group()
 event_sprites = pygame.sprite.Group()
+battle = pygame.sprite.Group()
+battle_UI = pygame.sprite.Group()
 music_on = pygame.mixer.music
 menu_background = AnimatedMenu(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Menu Background.png"), 4, 2, 1200, 800)
 mc = AnimatedChar(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\MC.png"), 4, 4, 36, 84)
+enemy = Enemy(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Exam\\Enemy.png"), 4, 1, 185, 368)
 story_btn = [pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Buttons\\story_btn{i}.png") for i in range(2)]
 free_mode_btn = [pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Buttons\\free_mode_btn{i}.png") for i in range(2)]
 sky = pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Game BG Sky.png")
@@ -245,10 +325,62 @@ room_id = 0
 screen = pygame.display.set_mode(size)
 start_lvl = load_level(f"{os.getcwd()}\\Data\\Maps\\0.txt")
 second_lvl = load_level(f"{os.getcwd()}\\Data\\Maps\\1.txt")
+layout = Battle_UI(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Exam\\Quiz_Layout.png"), 5, 1, 'layout')
+life = Battle_UI(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Exam\\Lifes.png"), 3, 1, 'live')
+counter = Battle_UI(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Exam\\Q_Counter.png"), 5, 2, 'counter')
+current_lifes = 3
+counter_q = 0
+
+
+def battle_mode(quiz_type):
+    global current_lifes, mouse
+    current_lifes = 3
+    if quiz_type == 'test':
+        music_on.load(f"{os.getcwd()}\\Data\\Music\\test_of_wits.ogg")
+        music_on.play(-1)
+        game = True
+        while game:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+            mouse = pygame.mouse.get_pos()
+            layout.update()
+            life.update()
+            counter.update()
+            display.blit(pygame.transform.scale(sky, (1200, 800)), (0, 0))
+            battle_UI.draw(screen)
+            pygame.display.flip()
+            clock.tick(30)
+    if quiz_type == 'battle':
+        music_on.load(f"{os.getcwd()}\\Data\\Music\\error_file_corrupted.ogg")
+        music_on.play(-1)
+        game = True
+        while game:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+            mouse = pygame.mouse.get_pos()
+            layout.update()
+            life.update()
+            counter.update()
+            enemy.update()
+            display.blit(pygame.transform.scale(glitch, (1200, 800)), (0, 0))
+            battle_UI.draw(screen)
+            battle.draw(screen)
+            pygame.display.flip()
+            clock.tick(30)
+
+
+def exam():
+    game = True
+    while game:
+        battle_mode('test')
 
 
 def story_mode():
-    global direction, i, speed, move, mc
+    global direction, i, speed, move, mc, game
     music_on.load(f"{os.getcwd()}\\Data\\Music\\ambivalence.ogg")
     music_on.play(-1, 0)
     game = True
@@ -330,7 +462,9 @@ if __name__ == '__main__':
     start = True
     while start:
         start_screen()
-    if gamemode == 0:
+    while gamemode == 0:
         story_mode()
+    while gamemode == 1:
+        exam()
 
 pygame.quit()
