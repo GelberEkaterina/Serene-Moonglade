@@ -3,8 +3,23 @@ import sys
 import pygame
 from math import sqrt
 import pygame.mixer
-import pygame.freetype
+import pygame.font
 import random
+
+questions = [
+    ['8-й элемент таблицы Менделеева', 'C', 'O', 'H', 'He', 2],
+    ['4 планета от Солнца', 'Марс', 'Земля', 'Меркурий', 'Юпитер', 1],
+    ['Сколько клеток на шахматной доске?', '1', '0', '64', '128', 3],
+    ['Что быстрее: свет или звук?', 'Звук', 'Свет', 'Одинаково', 'Усэйн Болт', 2],
+    ['Самая высокая точка в мире', 'Биг-Бен', 'Эверест', 'Марианская\nвпадина', 'Эльбрус', 2],
+    ['Чего боятся люди с фобофобией?', 'Темноты', 'Длинных слов', 'Высоты', 'Фобий', 4],
+    ['С точки зрения количества конечностей,\nкем являются кентавры?', 'Насекомыми', 'Паукообразными', 'Млекопитающими',
+     'Рыбами', 1],
+    ['Какой океан самый глубокий?', 'Тихий', 'Атлантический', 'Индийский', 'Одинаковые', 1],
+    ['С какой страной Франция имеет самую длинную сухопутную границу?', 'Германия', 'Испания', 'Бразилия', 'Австралия',
+     3],
+    ['Какой из городов расположен севернее?', 'Нью-Йорк', 'Пекин', 'Бразилиа', 'Рим', 4]
+]
 
 
 class Camera:
@@ -326,15 +341,77 @@ screen = pygame.display.set_mode(size)
 start_lvl = load_level(f"{os.getcwd()}\\Data\\Maps\\0.txt")
 second_lvl = load_level(f"{os.getcwd()}\\Data\\Maps\\1.txt")
 layout = Battle_UI(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Exam\\Quiz_Layout.png"), 5, 1, 'layout')
-life = Battle_UI(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Exam\\Lifes.png"), 3, 1, 'live')
+life = Battle_UI(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Exam\\Lifes.png"), 4, 1, 'live')
 counter = Battle_UI(pygame.image.load(f"{os.getcwd()}\\Data\\Sprites\\Exam\\Q_Counter.png"), 5, 2, 'counter')
 current_lifes = 3
 counter_q = 0
 
 
+def victory(score):
+    display.blit(pygame.transform.scale(forest, (1200, 800)), (0, 0))
+    music_on.load(f"{os.getcwd()}\\Data\\Music\\fading_hope.ogg")
+    music_on.play(-1)
+    music_on.set_pos(64)
+    font = pygame.font.Font(None, 240)
+    vict = font.render('ПОБЕДА', 1, pygame.Color('white'))
+    vict_rect = vict.get_rect()
+    vict_rect.center = 600, 200
+    font = pygame.font.Font(None, 120)
+    scr = font.render(f'Счёт: {score}', 1, pygame.Color('white'))
+    scr_rect = scr.get_rect()
+    scr_rect.midleft = 100, 400
+    if os.path.isfile(f"{os.getcwd()}\\Data\\record.txt"):
+        pr_high = int(open(f"{os.getcwd()}\\Data\\record.txt", 'r').readline())
+    else:
+        pr_high = 0
+    rec = font.render(f'Рекорд: {pr_high}', 1, pygame.Color('white'))
+    rec_rect = scr.get_rect()
+    rec_rect.midleft = 100, 500
+    screen.blit(rec, rec_rect)
+    if score > pr_high:
+        new = font.render('Новый рекорд!', 1, pygame.Color('white'))
+        new_rect = scr.get_rect()
+        new_rect.midleft = 100, 600
+        screen.blit(new, new_rect)
+        recing = open(f"{os.getcwd()}\\Data\\record.txt", 'w')
+        recing.write(str(score))
+    screen.blit(vict, vict_rect)
+    screen.blit(scr, scr_rect)
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+        pygame.display.flip()
+        clock.tick(30)
+
+
+def game_over():
+    music_on.load(f"{os.getcwd()}\\Data\\Music\\ambivalence_glitch.ogg")
+    music_on.play(-1)
+    font = pygame.font.Font(None, 240)
+    g_o = font.render('КОНЕЦ ИГРЫ', 1, pygame.Color('white'))
+    g_o_rect = g_o.get_rect()
+    g_o_rect.center = 600, 400
+    display.blit(pygame.transform.scale(glitch, (1200, 800)), (0, 0))
+    screen.blit(g_o, g_o_rect)
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT or event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                pygame.quit()
+                sys.exit()
+        pygame.display.flip()
+        clock.tick(30)
+
+
 def battle_mode(quiz_type):
-    global current_lifes, mouse
+    music_on.load(f"{os.getcwd()}\\Data\\Music\\test_of_wits.ogg")
+    music_on.play(-1)
+    global current_lifes, mouse, counter_q, questions
+    font = pygame.font.Font(None, 30)
     current_lifes = 3
+    answer = -1
+    score = 0
     if quiz_type == 'test':
         music_on.load(f"{os.getcwd()}\\Data\\Music\\test_of_wits.ogg")
         music_on.play(-1)
@@ -344,6 +421,19 @@ def battle_mode(quiz_type):
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    answer = layout.cur_frame - 1
+                    if answer >= 0:
+                        i = 0
+                        if answer == questions[counter_q][5]:
+                            score += 1
+                        else:
+                            current_lifes -= 1
+                            if current_lifes == 0:
+                                game_over()
+                        counter_q += 1
+                        if counter_q == 10:
+                            victory(score)
             mouse = pygame.mouse.get_pos()
             layout.update()
             life.update()
@@ -352,6 +442,7 @@ def battle_mode(quiz_type):
             battle_UI.draw(screen)
             pygame.display.flip()
             clock.tick(30)
+
     if quiz_type == 'battle':
         music_on.load(f"{os.getcwd()}\\Data\\Music\\error_file_corrupted.ogg")
         music_on.play(-1)
@@ -459,6 +550,7 @@ if __name__ == '__main__':
     pygame.init()
     music_on.load(f"{os.getcwd()}\\Data\\Music\\fading_hope.ogg")
     music_on.play(-1)
+    random.shuffle(questions)
     start = True
     while start:
         start_screen()
